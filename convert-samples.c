@@ -132,169 +132,114 @@ format_t get_format(char *name)
 
 int read_input_sample(FILE *input, format_t input_format, sample_t *sample)
 {
+  int r = 0;
   sample_t x;
 
   switch(input_format)
   {
   case S8:
-    if(fread(&x.s8, 1, 1, input) == 1)
+    if((r = fread(&x.s8, 1, 1, input)) == 1)
     {
       sample->cf32 = x.s8 / 128.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case U8:
-    if(fread(&x.u8, 1, 1, input) == 1)
+    if((r = fread(&x.u8, 1, 1, input)) == 1)
     {
       sample->cf32 = (x.u8 - 127) / 128.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case S16:
-    if(fread(&x.s16, 2, 1, input) == 1)
+    if((r = fread(&x.s16, 2, 1, input)) == 1)
     {
       sample->cf32 = x.s16 / 32768.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case U16:
-    if(fread(&x.u16, 2, 1, input) == 1)
+    if((r = fread(&x.u16, 2, 1, input)) == 1)
     {
       sample->cf32 = (x.u16 - 32767) / 32768.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case S32:
-    if(fread(&x.s32, 4, 1, input) == 1)
+    if((r = fread(&x.s32, 4, 1, input)) == 1)
     {
       sample->cf32 = x.s32 / 2147483648.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case U32:
-    if(fread(&x.u32, 4, 1, input) == 1)
+    if((r = fread(&x.u32, 4, 1, input)) == 1)
     {
       sample->cf32 = (x.u32 - 2147483647) / 2147483648.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case F32:
-    if(fread(&x.f32, 4, 1, input) == 1)
+    if((r = fread(&x.f32, 4, 1, input)) == 1)
     {
       sample->cf32 = x.f32;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case CS8:
-    if(fread(&x.cs8, 2, 1, input) == 1)
+    if((r = fread(&x.cs8, 2, 1, input)) == 1)
     {
       sample->cf32 = (x.cs8[0] + I * x.cs8[1]) / 128.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case CU8:
-    if(fread(&x.cu8, 2, 1, input) == 1)
+    if((r = fread(&x.cu8, 2, 1, input)) == 1)
     {
       sample->cf32 = ((x.cu8[0] - 127) + I * (x.cu8[1] - 127)) / 128.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case CS16:
-    if(fread(&x.cs16, 4, 1, input) == 1)
+    if((r = fread(&x.cs16, 4, 1, input)) == 1)
     {
       sample->cf32 = (x.cs16[0] + I * x.cs16[1]) / 32768.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case CU16:
-    if(fread(&x.cu16, 2, 1, input) == 1)
+    if((r = fread(&x.cu16, 2, 1, input)) == 1)
     {
       sample->cf32 = ((x.cu16[0] - 32767) + I * (x.cu16[1] - 32767)) / 32768.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case CS32:
-    if(fread(&x.cs32, 8, 1, input) == 1)
+    if((r = fread(&x.cs32, 8, 1, input)) == 1)
     {
       sample->cf32 = (x.cs32[0] + I * x.cs32[1]) / 2147483648.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case CU32:
-    if(fread(&x.cu32, 8, 1, input) == 1)
+    if((r = fread(&x.cu32, 8, 1, input)) == 1)
     {
       sample->cf32 = ((x.cu32[0] - 2147483647) + I * (x.cu32[1] - 2147483647)) / 2147483648.0;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   case CF32:
-    if(fread(&x.cf32, 8, 1, input) == 1)
+    if((r = fread(&x.cf32, 8, 1, input)) == 1)
     {
       sample->cf32 = x.cf32;
-    }
-    else
-    {
-      return(0);
     }
     break;
 
   default:
-    return(0);
+    break;
   }
 
-  return(1);
+  return(r);
 }
 
 void write_output_sample(FILE *output, format_t output_format, sample_t sample)
