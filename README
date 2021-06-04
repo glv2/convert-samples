@@ -1,1 +1,57 @@
-convert-samples -f cf32 -t cs8 -i samples.cf32 -o -
+convert-samples
+===============
+
+convert-samples is a command-line program to convert samples received from
+sotware defined radios from one format to another.
+
+
+## Usage
+
+convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>]
+
+Options:
+  -f <fmt>
+    Format of input samples.
+  -t <fmt>
+    Format of output samples.
+  -i <file>  [default: stdin]
+    Read input samples from 'file'.
+  -o <file>  [default: stdout]
+    Write output samples to 'file'.
+
+Supported formats:
+  - s8: signed 8 bit integer
+  - u8: unsigned 8 bit integer
+  - s16: signed 16 bit integer
+  - u16: unsigned 16 bit integer
+  - s32: signed 32 bit integer
+  - u32: unsigned 32 bit integer
+  - f32: 32 bit float
+  - cs8: complex made of signed 8 bit integers
+  - cu8: complex made of unsigned 8 bit integers
+  - cs16: complex made of signed 16 bit integers
+  - cu16: complex made of unsigned 16 bit integers
+  - cs32: complex made of signed 32 bit integers
+  - cu32: complex made of unsigned 32 bit integers
+  - cf32: complex made of 32 bit floats
+
+
+## Examples
+
+Convert samples from the cf32 format used by GNU Radio to the cs8 format used
+by HackRF:
+
+    convert-samples -f cf32 -t cs8 -i samples.cf32 -o samples.cs8
+
+
+Convert samples from the cu8 format used by RTL-SDR to the cs16 format used
+by BladeRF:
+
+    convert-samples -f cu8 -t cs16 -i samples.cu8 -o samples.cs16
+
+
+## Compilation
+
+    ./autogen.sh
+    ./configure
+    make
