@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <complex.h>
 #include <getopt.h>
+#include <math.h>
 #include <stdio.h>
 #include <strings.h>
 
@@ -254,7 +255,7 @@ void write_output_sample(FILE *output, format_t output_format, sample_t sample)
     break;
 
   case U8:
-    x.u8 = crealf(sample.cf32 * 128.0) + 127;
+    x.u8 = roundf(crealf(sample.cf32 * 128.0) + 127);
     fwrite(&x.u8, 1, 1, output);
     break;
 
@@ -264,7 +265,7 @@ void write_output_sample(FILE *output, format_t output_format, sample_t sample)
     break;
 
   case U16:
-    x.u16 = crealf(sample.cf32 * 32768.0) + 32767;
+    x.u16 = roundf(crealf(sample.cf32 * 32768.0) + 32767);
     fwrite(&x.u16, 2, 1, output);
     break;
 
@@ -274,7 +275,7 @@ void write_output_sample(FILE *output, format_t output_format, sample_t sample)
     break;
 
   case U32:
-    x.s32 = crealf(sample.cf32 * 2147483648.0) + 2147483647;
+    x.s32 = roundf(crealf(sample.cf32 * 2147483648.0) + 2147483647);
     fwrite(&x.u32, 4, 1, output);
     break;
 
@@ -290,8 +291,8 @@ void write_output_sample(FILE *output, format_t output_format, sample_t sample)
     break;
 
   case CU8:
-    x.cu8[0] = crealf(sample.cf32 * 128.0) + 127;
-    x.cu8[1] = cimagf(sample.cf32 * 128.0) + 127;
+    x.cu8[0] = roundf(crealf(sample.cf32 * 128.0) + 127);
+    x.cu8[1] = roundf(cimagf(sample.cf32 * 128.0) + 127);
     fwrite(&x.cu8, 2, 1, output);
     break;
 
@@ -302,8 +303,8 @@ void write_output_sample(FILE *output, format_t output_format, sample_t sample)
     break;
 
   case CU16:
-    x.cu16[0] = crealf(sample.cf32 * 32768.0) + 32767;
-    x.cu16[1] = cimagf(sample.cf32 * 32768.0) + 32767;
+    x.cu16[0] = roundf(crealf(sample.cf32 * 32768.0) + 32767);
+    x.cu16[1] = roundf(cimagf(sample.cf32 * 32768.0) + 32767);
     fwrite(&x.cu16, 4, 1, output);
     break;
 
@@ -314,8 +315,8 @@ void write_output_sample(FILE *output, format_t output_format, sample_t sample)
     break;
 
   case CU32:
-    x.cu32[0] = crealf(sample.cf32 * 2147483648.0) + 2147483647;
-    x.cu32[1] = cimagf(sample.cf32 * 2147483648.0) + 2147483647;
+    x.cu32[0] = roundf(crealf(sample.cf32 * 2147483648.0) + 2147483647);
+    x.cu32[1] = roundf(cimagf(sample.cf32 * 2147483648.0) + 2147483647);
     fwrite(&x.cu32, 8, 1, output);
     break;
 
