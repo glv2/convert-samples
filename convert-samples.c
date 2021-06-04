@@ -94,7 +94,7 @@ format_t get_format(char *name)
   {
     format = F32;
   }
-  if(strcasecmp(name, "cs8") == 0)
+  else if(strcasecmp(name, "cs8") == 0)
   {
     format = CS8;
   }
