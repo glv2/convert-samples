@@ -2,12 +2,12 @@ convert-samples
 ===============
 
 convert-samples is a command-line program to convert samples received from
-sotware defined radios from one format to another.
+software defined radios from one format to another.
 
 
 ## Usage
 
-convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>]
+convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>] [-r <ratio>]
 
 Options:
   -f <fmt>
@@ -18,6 +18,8 @@ Options:
     Read input samples from 'file'.
   -o <file>  [default: stdout]
     Write output samples to 'file'.
+  -r <ratio>  [default: 1.0]
+    Resample using the given ratio.
 
 Supported formats:
   - s8: signed 8 bit integer
@@ -50,7 +52,18 @@ by BladeRF:
     convert-samples -f cu8 -t cs16 -i samples.cu8 -o samples.cs16
 
 
+Convert samples from the cf32 format to the cs8 format, and also double the
+sample rate:
+
+    convert-samples -f cf32 -t cs8 -i samples.cf32 -o samples.cs8 -r 2.0
+
+
 ## Compilation
+
+convert-samples requires the following dependencies:
+  - libliquid (https://github.com/jgaeddert/liquid-dsp)
+
+It can be compiled with the usual:
 
     ./autogen.sh
     ./configure

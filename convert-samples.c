@@ -2,7 +2,7 @@
 This file is part of convert-samples, a program to convert samples
 received from software defined radios from one format to another.
 
-Copyright 2021 Guillaume LE VAILLANT
+Copyright 2021-2022 Guillaume LE VAILLANT
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,8 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <complex.h>
 #include <getopt.h>
+#include <liquid/liquid.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <strings.h>
 
 
@@ -339,11 +341,47 @@ void convert(FILE *input, format_t input_format, FILE *output, format_t output_f
   }
 }
 
+void convert_resample(FILE *input, format_t input_format, FILE *output, format_t output_format, float resampling_ratio)
+{
+  msresamp_crcf resampler = msresamp_crcf_create(resampling_ratio, 60);
+  unsigned int delay = ceilf(msresamp_crcf_get_delay(resampler));
+  sample_t sample;
+  float complex *samples = malloc((unsigned int) ceilf(1 + 2 * resampling_ratio) * sizeof(float complex));
+  unsigned int i;
+  unsigned int j;
+  unsigned int n;
+
+  while(read_input_sample(input, input_format, &sample))
+  {
+    msresamp_crcf_execute(resampler, &sample.cf32, 1, samples, &n);
+    for(i = 0; i < n; i++)
+    {
+      sample.cf32 = samples[i];
+      write_output_sample(output, output_format, sample);
+    }
+  }
+
+  for(i = 0; i < delay; i++)
+  {
+    samples[0] = 0;
+    msresamp_crcf_execute(resampler, samples, 1, samples, &n);
+    for(j = 0; j < n; j++)
+    {
+      sample.cf32 = samples[j];
+      write_output_sample(output, output_format, sample);
+    }
+  }
+
+  free(samples);
+  msresamp_crcf_destroy(resampler);
+}
+
 void usage()
 {
-  printf("convert-samples version 1.0.0\n");
+  printf("convert-samples version 2.0.0\n");
   printf("\n");
-  printf("Usage: convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>]\n");
+  printf("Usage: \n");
+  printf("  convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>] [-r <ratio>]\n");
   printf("\n");
   printf("Options:\n");
   printf("  -f <fmt>\n");
@@ -354,6 +392,8 @@ void usage()
   printf("    Read input samples from 'file'.\n");
   printf("  -o <file>  [default: stdout]\n");
   printf("    Write output samples to 'file'.\n");
+  printf("  -r <ratio>  [default: 1.0]\n");
+  printf("    Resample using the given ratio.\n");
   printf("\n");
   printf("Supported formats:\n");
   printf("  - s8: signed 8 bit integer\n");
@@ -379,8 +419,15 @@ int main(int argc, char **argv)
   FILE *output = stdout;
   format_t input_format = UNKNOWN;
   format_t output_format = UNKNOWN;
+  float resampling_ratio = 1.0;
 
-  while((opt = getopt(argc, argv, "f:hi:o:t:")) != -1)
+  if(argc == 1)
+  {
+    usage();
+    return(-1);
+  }
+
+  while((opt = getopt(argc, argv, "f:hi:o:r:t:")) != -1)
   {
     switch(opt)
     {
@@ -410,6 +457,10 @@ int main(int argc, char **argv)
       }
       break;
 
+    case 'r':
+      resampling_ratio = strtof(optarg, NULL);
+      break;
+
     case 't':
       output_format = get_format(optarg);
       break;
@@ -435,8 +486,20 @@ int main(int argc, char **argv)
     fprintf(stderr, "Error: Unknown output format\n");
     return(-1);
   }
+  if(resampling_ratio <= 0)
+  {
+    fprintf(stderr, "Error: Invalid resampling ratio\n");
+    return(-1);
+  }
 
-  convert(input, input_format, output, output_format);
+  if(resampling_ratio == 1.0)
+  {
+    convert(input, input_format, output, output_format);
+  }
+  else
+  {
+    convert_resample(input, input_format, output, output_format, resampling_ratio);
+  }
 
   fclose(input);
   fclose(output);
