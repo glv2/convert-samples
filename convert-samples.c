@@ -331,57 +331,91 @@ void write_output_sample(FILE *output, format_t output_format, sample_t sample)
   }
 }
 
-void convert(FILE *input, format_t input_format, FILE *output, format_t output_format)
+void convert(FILE *input,
+             format_t input_format,
+             FILE *output,
+             format_t output_format,
+             float resampling_ratio,
+             float frequency_shift)
 {
+  unsigned char do_resampling = (resampling_ratio != 1);
+  unsigned char do_shift = (frequency_shift != 0);
+  msresamp_crcf resampler;
+  nco_crcf oscillator;
+  unsigned int delay;
   sample_t sample;
-
-  while(read_input_sample(input, input_format, &sample))
-  {
-    write_output_sample(output, output_format, sample);
-  }
-}
-
-void convert_resample(FILE *input, format_t input_format, FILE *output, format_t output_format, float resampling_ratio)
-{
-  msresamp_crcf resampler = msresamp_crcf_create(resampling_ratio, 60);
-  unsigned int delay = ceilf(msresamp_crcf_get_delay(resampler));
-  sample_t sample;
-  float complex *samples = malloc((unsigned int) ceilf(1 + 2 * resampling_ratio) * sizeof(float complex));
+  float complex *samples;
   unsigned int i;
   unsigned int j;
   unsigned int n;
 
+  if(do_resampling)
+  {
+    resampler = msresamp_crcf_create(resampling_ratio, 60);
+    delay = ceilf(msresamp_crcf_get_delay(resampler));
+    samples = malloc((unsigned int) ceilf(1 + 2 * resampling_ratio) * sizeof(float complex));
+  }
+
+  if(do_shift)
+  {
+    oscillator = nco_crcf_create(LIQUID_NCO);
+    nco_crcf_set_phase(oscillator, 0);
+    nco_crcf_set_frequency(oscillator, 2 * M_PI * frequency_shift);
+  }
+
   while(read_input_sample(input, input_format, &sample))
   {
-    msresamp_crcf_execute(resampler, &sample.cf32, 1, samples, &n);
-    for(i = 0; i < n; i++)
+    if(do_shift)
     {
-      sample.cf32 = samples[i];
+      nco_crcf_mix_block_up(oscillator, &sample.cf32, &sample.cf32, 1);
+    }
+
+    if(do_resampling)
+    {
+      msresamp_crcf_execute(resampler, &sample.cf32, 1, samples, &n);
+      for(i = 0; i < n; i++)
+      {
+        sample.cf32 = samples[i];
+        write_output_sample(output, output_format, sample);
+      }
+    }
+    else
+    {
       write_output_sample(output, output_format, sample);
     }
   }
 
-  for(i = 0; i < delay; i++)
+  if(do_resampling)
   {
-    samples[0] = 0;
-    msresamp_crcf_execute(resampler, samples, 1, samples, &n);
-    for(j = 0; j < n; j++)
+    for(i = 0; i < delay; i++)
     {
-      sample.cf32 = samples[j];
-      write_output_sample(output, output_format, sample);
+      samples[0] = 0;
+      msresamp_crcf_execute(resampler, samples, 1, samples, &n);
+      for(j = 0; j < n; j++)
+      {
+        sample.cf32 = samples[j];
+        write_output_sample(output, output_format, sample);
+      }
     }
   }
 
-  free(samples);
-  msresamp_crcf_destroy(resampler);
+  if(do_shift)
+  {
+    nco_crcf_destroy(oscillator);
+  }
+  if(do_resampling)
+  {
+    free(samples);
+    msresamp_crcf_destroy(resampler);
+  }
 }
 
 void usage()
 {
-  printf("convert-samples version 2.0.0\n");
+  printf("convert-samples version 3.0.0\n");
   printf("\n");
   printf("Usage: \n");
-  printf("  convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>] [-r <ratio>]\n");
+  printf("  convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>] [-r <ratio>] [-s <shift>]\n");
   printf("\n");
   printf("Options:\n");
   printf("  -f <fmt>\n");
@@ -394,6 +428,9 @@ void usage()
   printf("    Write output samples to 'file'.\n");
   printf("  -r <ratio>  [default: 1.0]\n");
   printf("    Resample using the given ratio.\n");
+  printf("  -s <shift>  [default: 0.0]\n");
+  printf("    Shift frequencies, where 'shift' is the frequency shift\n");
+  printf("    in Hertz divided by the sample rate.\n");
   printf("\n");
   printf("Supported formats:\n");
   printf("  - s8: signed 8 bit integer\n");
@@ -420,6 +457,7 @@ int main(int argc, char **argv)
   format_t input_format = UNKNOWN;
   format_t output_format = UNKNOWN;
   float resampling_ratio = 1.0;
+  float frequency_shift = 0.0;
 
   if(argc == 1)
   {
@@ -427,7 +465,7 @@ int main(int argc, char **argv)
     return(-1);
   }
 
-  while((opt = getopt(argc, argv, "f:hi:o:r:t:")) != -1)
+  while((opt = getopt(argc, argv, "f:hi:o:r:s:t:")) != -1)
   {
     switch(opt)
     {
@@ -461,45 +499,52 @@ int main(int argc, char **argv)
       resampling_ratio = strtof(optarg, NULL);
       break;
 
+    case 's':
+      frequency_shift = strtof(optarg, NULL);
+      break;
+
     case 't':
       output_format = get_format(optarg);
       break;
 
     default:
-      fprintf(stderr, "Error: Unknown parameter: '-%c %s'\n", opt, optarg);
+      fprintf(stderr, "Error: Unknown parameter: '-%c %s'.\n", opt, optarg);
       return(-1);
     }
   }
   if(optind < argc)
   {
-    fprintf(stderr, "Error: Unknown parameter: '%s'\n", argv[optind]);
+    fprintf(stderr, "Error: Unknown parameter: '%s'.\n", argv[optind]);
     return(-1);
   }
 
   if(input_format == UNKNOWN)
   {
-    fprintf(stderr, "Error: Unknown input format\n");
+    fprintf(stderr, "Error: Unknown input format.\n");
     return(-1);
   }
   if(output_format == UNKNOWN)
   {
-    fprintf(stderr, "Error: Unknown output format\n");
+    fprintf(stderr, "Error: Unknown output format.\n");
     return(-1);
   }
   if(resampling_ratio <= 0)
   {
-    fprintf(stderr, "Error: Invalid resampling ratio\n");
+    fprintf(stderr, "Error: Invalid resampling ratio. It should be greater than 0.\n");
+    return(-1);
+  }
+  if((frequency_shift <= -0.5) || (frequency_shift >= 0.5))
+  {
+    fprintf(stderr, "Error: Invalid frequency shift. It should be between -0.5 and 0.5.\n");
     return(-1);
   }
 
-  if(resampling_ratio == 1.0)
-  {
-    convert(input, input_format, output, output_format);
-  }
-  else
-  {
-    convert_resample(input, input_format, output, output_format, resampling_ratio);
-  }
+  convert(input,
+          input_format,
+          output,
+          output_format,
+          resampling_ratio,
+          frequency_shift);
 
   fclose(input);
   fclose(output);

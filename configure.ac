@@ -1,4 +1,4 @@
-AC_INIT(convert-samples, 2.0.0)
+AC_INIT(convert-samples, 3.0.0)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(convert-samples.c)
 

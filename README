@@ -7,7 +7,7 @@ software defined radios from one format to another.
 
 ## Usage
 
-convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>] [-r <ratio>]
+convert-samples -f <fmt> -t <fmt> [-i <file>] [-o <file>] [-r <ratio>] [-s <shift>]
 
 Options:
   -f <fmt>
@@ -20,6 +20,9 @@ Options:
     Write output samples to 'file'.
   -r <ratio>  [default: 1.0]
     Resample using the given ratio.
+  -s <shift>  [default: 0.0]
+    Shift frequencies, where 'shift' is the frequency shift in Hertz
+    divided by the sample rate.
 
 Supported formats:
   - s8: signed 8 bit integer
@@ -56,6 +59,16 @@ Convert samples from the cf32 format to the cs8 format, and also double the
 sample rate:
 
     convert-samples -f cf32 -t cs8 -i samples.cf32 -o samples.cs8 -r 2.0
+
+Let's suppose that we have samples in cu8 format at 2000000 S/s with a signal
+of interest at 400 kHz having a 10 kHz bandwidth. We would like to have samples
+in cf32 format with only the wanted signal. To do that we can shift the
+frequencies by -400 kHz to put the signal in the center of the spectrum,
+and reduce the sample rate to 25000 S/s:
+  - shift: -400000 / 2000000 = -0.2
+  - ratio: 25000 / 2000000 = 0.0125
+
+    convert-samples -f cu8 -t cf32 -i samples.cu8 -o signal.cf32 -r 0.0125 -s -0.2
 
 
 ## Compilation
