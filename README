@@ -1,6 +1,8 @@
 convert-samples
 ===============
 
+The active repository is at https://codeberg.org/glv/convert-samples
+
 convert-samples is a command-line program to convert samples received from
 software defined radios from one format to another.
 
